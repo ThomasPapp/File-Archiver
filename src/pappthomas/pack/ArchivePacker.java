@@ -2,6 +2,7 @@ package pappthomas.pack;
 
 import pappthomas.archive.Archive;
 import pappthomas.util.BufferUtil;
+import pappthomas.util.FileLoader;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,10 +16,8 @@ import java.nio.file.Files;
  */
 public class ArchivePacker {
 
-    private static int size;
-
     public static void pack(File directory, String extension, String label) {
-        Archive archive = new Archive(label, new byte[] {});
+        Archive archive = new Archive();
         try {
             Files.walk(directory.toPath()).forEach(path -> {
                 File file = new File(path.toString());
@@ -29,14 +28,13 @@ public class ArchivePacker {
                 if (!file.getName().endsWith(extension))
                     return;
 
-                try (RandomAccessFile raf = new RandomAccessFile(file, "r"); FileChannel channel = raf.getChannel()) {
-                    ByteBuffer buffer = channel.map(FileChannel.MapMode.READ_ONLY, 0,channel.size());
+                try {
+                    ByteBuffer buffer = FileLoader.load(file);
+                    String filename = file.getName();
 
-                    String filename = file.getName().replace(extension, "");
-
-                    int size = buffer.remaining() + 4;
+                    int size = buffer.remaining();
                     int labelSize = filename.length() + 1;
-                    int totalSize = size + labelSize;
+                    int totalSize = size + labelSize + 4;
                     ByteBuffer archiveFileBuffer = ByteBuffer.allocate(totalSize);
                     BufferUtil.putString(archiveFileBuffer, filename);
                     archiveFileBuffer.putInt(size);
@@ -55,28 +53,19 @@ public class ArchivePacker {
         }
 
         if (archive.getSubArchives().isEmpty()) {
-            System.out.println("No archives");
+            System.out.println("Nothing to archive");
             return;
         }
 
-        archive.getSubArchives().forEach((l, file) -> size += file.getData().length);
-        ByteBuffer buffer = ByteBuffer.allocate(size);
-        archive.getSubArchives().forEach((l, file) -> buffer.put(file.getData()));
-        buffer.flip();
-        archive.put(buffer.array());
-
         File file = new File("./"+ label +".dat");
-        try (RandomAccessFile raf = new RandomAccessFile(file, "rw"); FileChannel channel = raf.getChannel()) {
-            channel.write(buffer);
+        try {
+            RandomAccessFile raf = new RandomAccessFile(file, "rw");
+            FileChannel channel = raf.getChannel();
+            channel.write(archive.pack());
             System.out.println("Files archived!");
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-
-    private static void compile(ByteBuffer buffer, byte[] payload) {
-
     }
 
 }

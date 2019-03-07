@@ -3,6 +3,8 @@
 
 # data
 /data
+/accounts
+*.dat
 
 # idea
 .idea
