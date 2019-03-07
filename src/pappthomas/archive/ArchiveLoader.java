@@ -13,7 +13,7 @@ import java.nio.ByteBuffer;
 public final class ArchiveLoader {
 
     public static Archive load(File file) throws IOException {
-        Archive archive = new Archive(file.getName().replace(".dat", ""), null);
+        Archive archive = new Archive();
         ByteBuffer buffer = FileLoader.load(file);
 
         int length = buffer.getInt();
